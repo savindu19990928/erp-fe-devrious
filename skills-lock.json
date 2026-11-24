@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "skills": {
+    "a11y-audit": {
+      "source": "snapsynapse/skill-a11y-audit",
+      "commit": "c9215f50163d02bdcee18ee352c43286751623f0",
+      "sourceType": "github",
+      "skillPath": "a11y-audit/SKILL.md",
+      "computedHash": "b14cf0dc109832edb583c8e09920f9e64661d2bf0e069d6a6675fb55f790264b"
+    },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "commit": "57217cf86ba38148a57af9e90d14a4c049558330",
+      "sourceType": "github",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "computedHash": "7bc223e2aafbdbf6e50ea243ba6ef67fe432bb069ab439fea0390795dac0bf7f"
+    },
+    "writing-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "commit": "5a37a6329fbad3666c3207392a6a7c0110e92efb",
+      "sourceType": "github",
+      "skillPath": "skills/writing-guidelines/SKILL.md",
+      "computedHash": "fe1390adbe2f7ba68d5fb85d3b14a1d55e71ce04cff5c175245c550d1c3a6f7e"
+    }
+  }
+}

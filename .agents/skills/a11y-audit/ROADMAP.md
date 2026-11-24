@@ -1,0 +1,160 @@
+---
+skill_bundle: a11y-audit
+file_role: reference
+version: 13
+version_date: 2026-11-19
+previous_version: 12
+change_summary: >
+  Records bounded maintenance direction and the delivered security, compatibility and adoption tranche.
+---
+
+# Accessibility Audit Roadmap
+
+## Product boundary
+
+skill-a11y-audit is an open, self-hosted accessibility regression gate for
+large web estates. Its durable advantage is deterministic template-aware
+sampling, selector-level evidence, stable baseline comparison, and
+repository-native CI adoption.
+
+It complements broader accessibility agent systems, component testing, manual
+assistive-technology practice, and enterprise monitoring. It does not certify
+conformance or automatically remediate application code.
+
+## Shipped foundation
+
+- Sitemap-first discovery with reviewed route grouping and conservative
+  full-coverage fallback.
+- Source-to-surface ownership maps with direct changed-page inclusion and a
+  complete representative-plan fallback.
+- Reviewed accepted baselines with stable finding fingerprints and
+  `fail-on: new` regression gating.
+- Pluggable WCAG 2.1 AA, WCAG 2.2 AA, and EN 301 549 evidence matrices.
+- A reusable GitHub Action with hosted consumer validation for pull-request
+  base and head objects.
+- A vendor-neutral JSON process adapter that composes discovery, selection,
+  scanning, and report generation without changing the native artifacts.
+- Atomic locked scanner and Action dependency acquisition with bounded retries,
+  actionable timeout diagnostics, and readiness timing isolated from fetches.
+
+## v3 runtime contract
+
+The Node 22.12+ and Puppeteer 25 migration removes `extract-zip` from the
+managed dependency graph. Existing stale skill-local Puppeteer installations
+are replaced through a locked reinstall before scanning. Project/global
+fallbacks remain externally managed.
+See `references/runtime-compatibility.md` for the compatibility contract and
+`../ops/v3.0.0-release-preparation.md` for validation evidence and release gates.
+
+v3.0.0 shipped on 2026-09-05. GitHub automatically marked Dependabot alert 2
+for `GHSA-jmr9-qjv8-65gv` fixed at 2026-09-05T20:19:03Z after the migrated
+dependency graph reached `main`; no manual dismissal occurred.
+
+## v3.1.0 shipped
+
+v3.1.0 shipped on 2026-09-07. The [publication receipt](../ops/v3.1.0-publication-receipt.json) identifies the released commit and verified assets and live files.
+
+The release adds an explicit total-current-findings gate for teams whose acceptance bar is
+zero critical or serious standards findings. `--fail-on major` preserves all
+reported findings, treats moderate, minor, and explicitly best-practice-only
+rules as nonblocking, and never lets a baseline suppress an existing major
+finding. Unknown severity and high-impact incomplete candidates remain
+inconclusive until reviewed. See `../ops/dependency-readiness-2026-09-07.md`.
+
+The same release includes an experimental `posix-json-v1` adapter contract. It
+separates operational status from gate outcomes, defines terminal JSON, and
+retains legacy behavior. See `references/cli-contract.md`. GuideCheck and
+Portfolio CLI adoption remain separate consumer work, evaluated against their
+own evidence rather than inferred from A11y release acceptance.
+
+## Active maintenance direction
+
+Owner-confirmed direction on 2026-11-16: bounded active development,
+prioritizing security, compatibility, tested CI adoption and baseline clarity.
+Expansion is demand-gated. The feature priorities below are deferred until
+adopter demand justifies a bounded tranche; they are not implementation authority.
+
+The repo-owned [maintenance queue](../ops/maintenance-queue.md) records the
+delivered security and search repairs and remaining adoption checks. The
+[baseline demonstration plan](../ops/baseline-demonstration-plan.md) owns the
+three-state local example and its acceptance boundaries. Process one bounded
+correction or demonstrated adopter CI failure at a time. Keep all existing
+findings visible and require explicit human baseline acceptance; never
+regenerate a baseline merely to obtain a passing gate.
+
+Commit/push/PR, merge/tag/release, deployment, settings changes, paid inference
+and production-data actions require their own authority. The accepted GitHub
+Pages nosniff limitation is not a hosting-migration instruction. Consumer
+upgrades require exact published-pin and baseline compatibility evidence;
+fixture consumer tests do not establish portfolio-wide adoption.
+
+## Next priorities
+
+1. Authenticated deterministic journeys. Accept a Playwright storage state or
+   bounded journey file as scan input. Do not expand into an unconstrained
+   browser agent.
+2. SARIF output. Add a repository-native emitter for organizations using
+   GitHub code scanning while preserving the existing JSON contract as the
+   universal CI surface.
+3. First-class Playwright execution. Add it only where it improves
+   deterministic state coverage or reuses an existing project dependency.
+
+## v3.2.0 authenticated input slice
+
+The scanner, process adapter, and Action accept storage state plus per-target
+URL/readiness assertions. See [authenticated scan inputs](references/authenticated-scans.md).
+This completes the initial input slice with recorded validation;
+it does not complete authenticated deterministic journeys. Named journey
+checkpoints and state-aware baseline identity remain next. Guide 0.3.17 and its sidecar bind the changed scanner, which verifies its
+local dependencies before loading them. See `../ops/v3.2.0-release-state.json`
+for publication and hosted verification evidence.
+
+## Resolved maintenance
+
+### Assistant guide hosted verifier compatibility
+
+Observed 2026-09-07 and reproduced 2026-09-24: the hosted GuideCheck 0.7.1
+verifier, within the guide's declared `>=0.7.0, <0.8.0` range, returns
+Level 2 for guide SHA-256
+`5336f01caff74893df033b4cfc8676631de24eb2c1c7526ac8523ad1a628ea35`.
+The blocking `action-block.malformed` finding says `exec-opaque` is permitted
+only for exempt dependency commands, identifying `install-skill`. An advisory
+also reports a missing `X-Content-Type-Options: nosniff` header, which GitHub
+Pages cannot set. GuideCheck's 2.0.0 candidate preview returned the same
+result, so this is not a corrected-profile regression. The release's pinned
+GuideCheck 0.7.0 Level 3 result remains valid evidence for that evaluator
+only. Since 2026-09-23 the README and website state the hosted result and
+recommend the Skills CLI.
+
+Resolved with v3.2.0: guide 0.3.17 replaces the installer with release-specific
+source acquisition while keeping Skills CLI registration outside the guide.
+The deployed guide SHA-256 is
+`506f4cc5eddbf192484b3599c1050efdec0021484a5d4fd25cb327834432c24c`.
+Hosted GuideCheck returned Level 4 with zero blocking findings. The remaining
+missing-nosniff header warning is unchanged. Local and hosted acceptance are
+recorded separately in `../ops/v3.2.0-publication-receipt.json` and
+`../ops/v3.2.0-hosted-guidecheck.json`. No verifier was weakened and the prior
+release reports remain unchanged.
+
+## Standing validation work
+
+- Exercise the issue-planning path against a real authenticated tracker before
+  describing live ticket creation as validated.
+- Use `scripts/plan-issues.js` as the default dry-run step before creating any
+  external issue.
+- Keep new regression fixes covered by `npm run validate` before updating
+  bundle metadata.
+- Continue field validation of ownership-map ergonomics, targeted scan timing,
+  and conservative fallback evidence on large production sites.
+- After the upstream resilience work ships, reassess whether consumers still
+  need project-level `http-server` pins. Keep exact `axe-core` pins wherever
+  baseline compatibility depends on the scanner version.
+
+## Explicit non-goals
+
+- Broad accessibility-agent suite.
+- Automated code remediation.
+- Generic axe MCP wrapper.
+- Hosted dashboard or enterprise monitoring service.
+- VPAT generation or conformance certification.
+- Screen-reader simulation.

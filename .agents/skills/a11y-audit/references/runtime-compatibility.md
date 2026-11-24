@@ -1,0 +1,87 @@
+---
+skill_bundle: a11y-audit
+file_role: reference
+version: 4
+version_date: 2026-11-18
+previous_version: 3
+change_summary: >
+  Documents installed lock identity checks and explicit external dependency boundaries.
+---
+
+# Runtime compatibility
+
+v3 requires Node.js 22.12.0 or later. Upgrade Node before installing scanner
+dependencies or invoking the scripts. Node 18 and 20 are no longer supported.
+The reusable GitHub Action defaults to Node 22 and checks
+the actual runtime before installing dependencies. Its `node-version` input
+can select another supported version, including `22.12.0` for floor testing.
+
+The managed lockfile pins Puppeteer 25.16.0, puppeteer-core 25.16.0, and
+`@puppeteer/browsers` 3.2.6. All three require Node >=22.12.0. The browser
+installer uses `modern-tar`; the complete root and scanner lockfiles contain
+no `extract-zip`. This removes the managed dependency path affected by
+[GHSA-jmr9-qjv8-65gv](https://github.com/advisories/GHSA-jmr9-qjv8-65gv),
+which concerns symlink traversal during ZIP extraction. It does not claim
+that every browser installation mechanism or user-supplied package is safe.
+
+These versions belong to v3.3.0. The immutable v3.2.0 release
+keeps its original graph until a new release is published. Read
+`network-policy.md` for sandbox defaults, explicit overrides and fetch limits.
+
+axe-core stays pinned to 4.12.1. Existing accepted baselines retain their
+rule-engine version; review actual finding changes before updating a baseline.
+
+## Browser installation
+
+From the repository root, install the committed scanner graph. Puppeteer's
+postinstall acquires its matching Chrome into the configured Puppeteer cache.
+Literal
+```bash
+npm ci --prefix a11y-audit/deps
+```
+`PUPPETEER_SKIP_DOWNLOAD=true` installs npm packages without acquiring a
+browser. A scan then requires the matching Chrome already present in the
+same cache, or an explicitly configured compatible executable. To acquire
+the pinned Chrome explicitly from the repository root, use the installed
+CLI. This command downloads and extracts the browser.
+Literal
+```bash
+a11y-audit/deps/node_modules/.bin/puppeteer browsers install chrome
+```
+Use the same `PUPPETEER_CACHE_DIR` for installation and scanning. Review
+installer settings if npm disables lifecycle scripts. The committed scanner
+manifest permits only `puppeteer@25.16.0` lifecycle scripts for npm versions
+that require an explicit script policy; other dependency scripts remain
+unapproved. This does not alter global npm settings or override an operator
+using `--ignore-scripts`. The Action honors
+Puppeteer download settings and does not silently override a skipped download.
+
+An installed skill uses the same `deps/` layout under its selected skill
+directory. Before reusing managed dependencies, the scanner checks a marker
+written after successful `npm ci` against the committed lock digest, verifies
+the installed lock graph, and checks the managed axe-core and Puppeteer versions.
+A changed transitive lock entry, stale marker, partial install or top-level
+version drift triggers a complete locked reinstall before scanning. Failed
+installation removes the marker.
+The scanner can still resolve project or global packages when
+skill-local dependencies are absent. Those externally managed graphs are
+outside this bundle's lockfile guarantee; inspect their versions and audit
+them separately. Install the committed skill-local graph to use the validated
+Puppeteer release.
+
+## Verification
+
+`npm run validate` guards both lockfiles, runtime metadata, CI selectors,
+the Action runtime check, and nested or aliased extractor reintroduction.
+`npm run eval:browser` exercises a real scan and accepted-baseline rescan.
+`npm run eval:consumer` copies the bundle without dependencies into a
+temporary installation and executes the Action's shell steps from a separate
+consumer workspace. It tests an empty browser cache followed by a clean
+skip-download reinstall using that cache, then tests replacement of stale
+managed Puppeteer metadata through a real locked reinstall. Temporary files are removed after
+the run. This test downloads a managed browser and requires loopback access.
+
+The local consumer harness uses the current Node executable. It does not
+emulate GitHub setup-node or artifact uploads; the hosted Action consumer
+job tests those platform operations. CI also tests the exact Node 22.12.0
+floor. Passing local tests does not establish hosted CI or release completion.
