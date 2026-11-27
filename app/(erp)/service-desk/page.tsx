@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { Headphones, MessageSquarePlus, RefreshCw, Star } from "lucide-react";
+import { D3BarChart, D3DonutChart } from "@/components/charts";
 import { api } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/format";
 import {
@@ -178,6 +179,25 @@ function TicketInspectorExtra({
   );
 }
 
+function toChartPairs(raw: unknown): Array<{ label: string; value: number }> {
+  if (!raw || typeof raw !== "object") return [];
+  if (Array.isArray(raw)) {
+    return raw
+      .map((item) => {
+        if (!item || typeof item !== "object") return null;
+        const obj = item as Record<string, unknown>;
+        const label = String(obj.status ?? obj.category ?? obj.priority ?? obj.label ?? obj.name ?? "");
+        const value = Number(obj.count ?? obj.total ?? obj.value ?? 0);
+        return label ? { label, value } : null;
+      })
+      .filter((x): x is { label: string; value: number } => Boolean(x));
+  }
+  return Object.entries(raw as Record<string, unknown>).map(([label, val]) => ({
+    label,
+    value: Number(val) || 0,
+  }));
+}
+
 function ServiceDeskMetricsBanner() {
   const [metrics, setMetrics] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(false);
@@ -211,9 +231,12 @@ function ServiceDeskMetricsBanner() {
 
   if (!metrics) return null;
 
+  const statusData = toChartPairs(metrics.by_status ?? metrics.status_breakdown);
+  const categoryData = toChartPairs(metrics.by_category ?? metrics.category_breakdown);
+
   return (
-    <Card className="mb-4 p-4">
-      <div className="mb-3 flex items-center justify-between">
+    <Card className="mb-4 p-4 space-y-4">
+      <div className="flex items-center justify-between">
         <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
           Live Service Desk SLA Metrics (/api/service-desk/metrics/)
         </span>
@@ -222,6 +245,18 @@ function ServiceDeskMetricsBanner() {
           Refresh
         </Button>
       </div>
+      {(statusData.length > 0 || categoryData.length > 0) && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-3.5">
+            <p className="mb-2 text-xs font-semibold text-[var(--text-secondary)]">Tickets by Status</p>
+            <D3DonutChart data={statusData} size={160} centerLabel="Tickets" title="Tickets by Status" />
+          </div>
+          <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-3.5">
+            <p className="mb-2 text-xs font-semibold text-[var(--text-secondary)]">Tickets by Category</p>
+            <D3BarChart data={categoryData} height={190} title="Tickets by Category" />
+          </div>
+        </div>
+      )}
       <JsonViewer data={metrics} title="Service-Level Metrics Snapshot" filename="sla-metrics.json" />
     </Card>
   );

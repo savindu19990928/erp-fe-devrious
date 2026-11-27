@@ -12,9 +12,7 @@ import {
   api,
   clearStoredTokens,
   extractList,
-  getStoredApiBase,
   getStoredTokens,
-  setStoredApiBase,
   setStoredTokens,
 } from "./api-client";
 import type {
@@ -35,7 +33,6 @@ interface AuthContextValue {
   activeBranchId: number | null;
   notifications: NotificationItem[];
   theme: "light" | "dark";
-  apiBaseUrl: string;
   isLoading: boolean;
   isAuthenticated: boolean;
   isAuditor: boolean;
@@ -43,7 +40,6 @@ interface AuthContextValue {
   setActiveBranchId: (id: number | null) => void;
   setTheme: (theme: "light" | "dark") => void;
   toggleTheme: () => void;
-  updateApiBaseUrl: (url: string) => void;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<void>;
@@ -65,7 +61,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [activeBranchId, setActiveBranchIdState] = useState<number | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [theme, setThemeState] = useState<"light" | "dark">("light");
-  const [apiBaseUrl, setApiBaseUrlState] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const applyThemeDom = useCallback((nextTheme: "light" | "dark") => {
@@ -108,11 +103,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (id === null) window.localStorage.removeItem(BRANCH_KEY);
       else window.localStorage.setItem(BRANCH_KEY, String(id));
     }
-  }, []);
-
-  const updateApiBaseUrl = useCallback((url: string) => {
-    setStoredApiBase(url);
-    setApiBaseUrlState(getStoredApiBase());
   }, []);
 
   const refreshSession = useCallback(async () => {
@@ -194,7 +184,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           "light";
         setThemeState(savedTheme);
         applyThemeDom(savedTheme);
-        setApiBaseUrlState(getStoredApiBase());
       }
       void refreshSession();
     }, 0);
@@ -258,7 +247,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       activeBranchId,
       notifications,
       theme,
-      apiBaseUrl,
       isLoading,
       isAuthenticated: Boolean(user),
       isAuditor: user?.role === "AUDITOR",
@@ -266,7 +254,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setActiveBranchId,
       setTheme,
       toggleTheme,
-      updateApiBaseUrl,
       login,
       logout,
       refreshSession,
@@ -281,13 +268,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       activeBranchId,
       notifications,
       theme,
-      apiBaseUrl,
       isLoading,
       setActiveCompanyId,
       setActiveBranchId,
       setTheme,
       toggleTheme,
-      updateApiBaseUrl,
       login,
       logout,
       refreshSession,

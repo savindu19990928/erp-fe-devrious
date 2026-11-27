@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { BarChart3, QrCode, RefreshCw } from "lucide-react";
+import { D3StackedBarChart } from "@/components/charts";
 import { api, ApiError, extractList } from "@/lib/api-client";
 import { formatDate, formatNumber } from "@/lib/format";
 import {
@@ -214,6 +215,28 @@ function InventoryOverviewAndScanner() {
             </Button>
           </div>
         </div>
+        {reorderAlerts.length > 0 && (
+          <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4">
+            <p className="mb-3 text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+              Low-Stock vs Reorder Point Gap (D3.js)
+            </p>
+            <D3StackedBarChart
+              mode="grouped"
+              height={230}
+              categoryKey="sku"
+              data={reorderAlerts.slice(0, 10).map((item) => ({
+                sku: String(item.product_sku || item.id),
+                on_hand: Number(item.on_hand || 0),
+                reorder_point: Number(item.reorder_point || 0),
+              }))}
+              series={[
+                { key: "on_hand", label: "Current On Hand", color: "#dc1e28" },
+                { key: "reorder_point", label: "Reorder Point", color: "#2563eb" },
+              ]}
+              title="Low-Stock vs Reorder Point"
+            />
+          </div>
+        )}
         {analytics && (
           <JsonViewer
             data={analytics}

@@ -4,10 +4,6 @@ import type { PaginatedResponse } from "./types";
 
 export const TOKEN_STORAGE_KEY = "bizzrious_access_token";
 export const REFRESH_STORAGE_KEY = "bizzrious_refresh_token";
-export const API_BASE_STORAGE_KEY = "bizzrious_api_base";
-
-export const DEFAULT_PUBLIC_API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://erp.devrious.lk/api";
 
 export class ApiError extends Error {
   status: number;
@@ -54,21 +50,6 @@ export function clearStoredTokens(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(TOKEN_STORAGE_KEY);
   window.localStorage.removeItem(REFRESH_STORAGE_KEY);
-}
-
-export function getStoredApiBase(): string {
-  if (typeof window === "undefined") return DEFAULT_PUBLIC_API_BASE;
-  return window.localStorage.getItem(API_BASE_STORAGE_KEY) || DEFAULT_PUBLIC_API_BASE;
-}
-
-export function setStoredApiBase(url: string): void {
-  if (typeof window === "undefined") return;
-  const trimmed = url.trim().replace(/\/+$/, "");
-  if (!trimmed) {
-    window.localStorage.removeItem(API_BASE_STORAGE_KEY);
-  } else {
-    window.localStorage.setItem(API_BASE_STORAGE_KEY, trimmed);
-  }
 }
 
 export function parseDrfError(data: unknown, fallback: string): string {
@@ -130,17 +111,11 @@ async function refreshAccessToken(): Promise<string | null> {
     if (!refresh) return null;
 
     try {
-      const customBase = getStoredApiBase();
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (customBase && customBase !== DEFAULT_PUBLIC_API_BASE) {
-        headers["x-bizzrious-api-base"] = customBase;
-      }
-
       const res = await fetch(buildProxyUrl("/api/auth/refresh/"), {
         method: "POST",
-        headers,
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ refresh }),
       });
 
@@ -200,11 +175,6 @@ export async function apiFetch<T = unknown>(
 
     if (!isMultipart && body !== undefined && !(body instanceof FormData)) {
       headers["Content-Type"] = "application/json";
-    }
-
-    const customBase = getStoredApiBase();
-    if (customBase && customBase !== DEFAULT_PUBLIC_API_BASE) {
-      headers["x-bizzrious-api-base"] = customBase;
     }
 
     if (!skipAuth) {

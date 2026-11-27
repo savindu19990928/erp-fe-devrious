@@ -8,6 +8,13 @@
       "skillPath": "a11y-audit/SKILL.md",
       "computedHash": "b14cf0dc109832edb583c8e09920f9e64661d2bf0e069d6a6675fb55f790264b"
     },
+    "d3-viz": {
+      "source": "chrisvoncsefalvay/claude-d3js-skill",
+      "commit": "e198c87d03f1c9811acbff681886fac24baee53d",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "f524da377fadea47015187c2ac1be1440e70d62253bda880ee0f16cb2fb2bfff"
+    },
     "find-skills": {
       "source": "vercel-labs/skills",
       "commit": "57217cf86ba38148a57af9e90d14a4c049558330",

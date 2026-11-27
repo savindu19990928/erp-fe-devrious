@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Calculator, Download, FileText, Printer, UserCheck } from "lucide-react";
+import { D3DonutChart } from "@/components/charts";
 import { api } from "@/lib/api-client";
 import { downloadCsv, downloadJson, formatCurrency } from "@/lib/format";
 import {
@@ -95,30 +96,51 @@ function HrCalculatorAndSelfService() {
         </form>
 
         {calcResult && (
-          <div className="divide-y divide-[var(--border-subtle)] rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-4 text-xs">
-            <div className="flex justify-between py-2.5">
-              <span>Gross Salary</span>
-              <span className="font-mono font-bold">{formatCurrency(calcResult.gross_salary)}</span>
+          <div className="space-y-4">
+            <div className="divide-y divide-[var(--border-subtle)] rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-4 text-xs">
+              <div className="flex justify-between py-2.5">
+                <span>Gross Salary</span>
+                <span className="font-mono font-bold">{formatCurrency(calcResult.gross_salary)}</span>
+              </div>
+              <div className="flex justify-between py-2.5 text-red-600 dark:text-red-400">
+                <span>Employee EPF Deducted (8%)</span>
+                <span className="font-mono font-bold">-{formatCurrency(calcResult.epf_employee_8_percent)}</span>
+              </div>
+              <div className="flex justify-between py-2.5 text-red-600 dark:text-red-400">
+                <span>APIT Progressive Tax</span>
+                <span className="font-mono font-bold">-{formatCurrency(calcResult.apit_tax)}</span>
+              </div>
+              <div className="flex justify-between py-2.5 text-sm font-extrabold text-emerald-700 dark:text-emerald-300">
+                <span>Net Take-Home Salary</span>
+                <span className="font-mono">{formatCurrency(calcResult.net_salary)}</span>
+              </div>
+              <div className="flex justify-between py-2.5 text-[var(--text-secondary)]">
+                <span>Employer EPF Contribution (12%)</span>
+                <span className="font-mono">{formatCurrency(calcResult.epf_employer_12_percent)}</span>
+              </div>
+              <div className="flex justify-between py-2.5 text-[var(--text-secondary)]">
+                <span>Employer ETF Contribution (3%)</span>
+                <span className="font-mono">{formatCurrency(calcResult.etf_employer_3_percent)}</span>
+              </div>
             </div>
-            <div className="flex justify-between py-2.5 text-red-600 dark:text-red-400">
-              <span>Employee EPF Deducted (8%)</span>
-              <span className="font-mono font-bold">-{formatCurrency(calcResult.epf_employee_8_percent)}</span>
-            </div>
-            <div className="flex justify-between py-2.5 text-red-600 dark:text-red-400">
-              <span>APIT Progressive Tax</span>
-              <span className="font-mono font-bold">-{formatCurrency(calcResult.apit_tax)}</span>
-            </div>
-            <div className="flex justify-between py-2.5 text-sm font-extrabold text-emerald-700 dark:text-emerald-300">
-              <span>Net Take-Home Salary</span>
-              <span className="font-mono">{formatCurrency(calcResult.net_salary)}</span>
-            </div>
-            <div className="flex justify-between py-2.5 text-[var(--text-secondary)]">
-              <span>Employer EPF Contribution (12%)</span>
-              <span className="font-mono">{formatCurrency(calcResult.epf_employer_12_percent)}</span>
-            </div>
-            <div className="flex justify-between py-2.5 text-[var(--text-secondary)]">
-              <span>Employer ETF Contribution (3%)</span>
-              <span className="font-mono">{formatCurrency(calcResult.etf_employer_3_percent)}</span>
+            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-3.5">
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                Salary &amp; Statutory Contribution Breakdown
+              </p>
+              <D3DonutChart
+                size={165}
+                centerLabel="Gross"
+                centerValue={formatCurrency(calcResult.gross_salary)}
+                formatValue={(v) => formatCurrency(v)}
+                data={[
+                  { label: "Net Take-Home", value: Number(calcResult.net_salary) || 0, color: "#059669" },
+                  { label: "Employee EPF (8%)", value: Number(calcResult.epf_employee_8_percent) || 0, color: "#2563eb" },
+                  { label: "APIT Tax", value: Number(calcResult.apit_tax) || 0, color: "#dc1e28" },
+                  { label: "Employer EPF (12%)", value: Number(calcResult.epf_employer_12_percent) || 0, color: "#7c3aed" },
+                  { label: "Employer ETF (3%)", value: Number(calcResult.etf_employer_3_percent) || 0, color: "#d97706" },
+                ]}
+                title="Payroll Statutory Split"
+              />
             </div>
           </div>
         )}

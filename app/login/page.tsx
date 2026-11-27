@@ -1,29 +1,23 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Globe, Lock, Server, ShieldCheck, User } from "lucide-react";
+import { Eye, EyeOff, Lock, ShieldCheck, User } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-import { api, ApiError } from "@/lib/api-client";
+import { ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/Primitives";
 import { useToast } from "@/components/ui/ToastProvider";
 
 export default function LoginPage() {
   const router = useRouter();
   const toast = useToast();
-  const { login, isAuthenticated, isLoading, apiBaseUrl, updateApiBaseUrl } = useAuth();
+  const { login, isAuthenticated, isLoading } = useAuth();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
-
-  const [showServerConfig, setShowServerConfig] = useState(false);
-  const [serverDraft, setServerDraft] = useState<string | null>(null);
-  const [testingServer, setTestingServer] = useState(false);
-  const effectiveServerUrl = serverDraft ?? apiBaseUrl;
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -43,34 +37,11 @@ export default function LoginPage() {
       const msg =
         err instanceof ApiError
           ? err.message
-          : "Authentication failed. Please verify credentials and API connection.";
+          : "Authentication failed. Please verify credentials and try again.";
       setErrorBanner(msg);
       toast.error("Sign in failed", msg);
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const testAndSaveServer = async () => {
-    updateApiBaseUrl(effectiveServerUrl);
-    setTestingServer(true);
-    try {
-      await api.get("/api/platform/plans/", undefined, true);
-      toast.success("API server reachable", effectiveServerUrl);
-    } catch (err) {
-      if (err instanceof ApiError && err.status !== 502 && err.status !== 504) {
-        toast.success(
-          "API server responded",
-          `Endpoint returned HTTP ${err.status} (server is online).`
-        );
-      } else {
-        toast.warning(
-          "Saved API URL (Server unreachable from here)",
-          err instanceof Error ? err.message : effectiveServerUrl
-        );
-      }
-    } finally {
-      setTestingServer(false);
     }
   };
 
@@ -98,10 +69,10 @@ export default function LoginPage() {
 
         <div className="relative z-10 my-10 space-y-6">
           <h1 className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
-            Unified Enterprise Operations, Finance & Logistics.
+            Unified Enterprise Operations, Finance &amp; Logistics.
           </h1>
           <p className="max-w-md text-sm leading-relaxed text-slate-300">
-            Built for multi-branch enterprises: Sri Lanka VAT/SVAT & RAMIS e-invoicing,
+            Built for multi-branch enterprises: Sri Lanka VAT/SVAT &amp; RAMIS e-invoicing,
             EPF/ETF/APIT payroll, hierarchical warehouse inventory, POS, e-commerce,
             GPS fleet telematics, and SLA service desk.
           </p>
@@ -198,70 +169,9 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
-            <span>New organization?</span>
-            <Link
-              href="/register"
-              className="font-semibold text-[var(--brand-primary)] hover:underline"
-            >
-              Register an ERP Tenant Account →
-            </Link>
-          </div>
-
-          {/* API Server Connection Config */}
-          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
-            <button
-              type="button"
-              onClick={() => setShowServerConfig((v) => !v)}
-              className="flex w-full cursor-pointer items-center justify-between text-xs font-semibold text-[var(--text-primary)]"
-            >
-              <span className="flex items-center gap-2">
-                <Server className="h-4 w-4 text-[var(--brand-primary)]" />
-                API Server Connection
-              </span>
-              <span className="font-mono text-[11px] font-normal text-[var(--text-muted)]">
-                {showServerConfig ? "Hide" : "Configure"}
-              </span>
-            </button>
-
-            {showServerConfig && (
-              <div className="mt-3 space-y-2.5 border-t border-[var(--border-subtle)] pt-3">
-                <input
-                  type="url"
-                  value={effectiveServerUrl}
-                  onChange={(e) => setServerDraft(e.target.value)}
-                  placeholder="https://erp.devrious.lk/api"
-                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 py-1.5 font-mono text-xs text-[var(--text-primary)]"
-                />
-                <div className="flex flex-wrap gap-1.5">
-                  <Button
-                    size="xs"
-                    variant="outline"
-                    onClick={() => setServerDraft("https://erp.devrious.lk/api")}
-                  >
-                    <Globe className="h-3 w-3" />
-                    erp.devrious.lk
-                  </Button>
-                  <Button
-                    size="xs"
-                    variant="outline"
-                    onClick={() => setServerDraft("http://127.0.0.1:8000/api")}
-                  >
-                    Localhost :8000
-                  </Button>
-                  <Button
-                    size="xs"
-                    variant="primary"
-                    loading={testingServer}
-                    onClick={testAndSaveServer}
-                    className="ml-auto"
-                  >
-                    Save & Test
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
+          <p className="text-center text-xs text-[var(--text-muted)]">
+            Contact your Bizzrious Platform Administrator for organization provisioning.
+          </p>
         </div>
       </div>
     </div>

@@ -1,21 +1,13 @@
 "use client";
 
-import React, { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FileText,
   Landmark,
   Printer,
   RefreshCw,
 } from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { D3BarChart, D3DonutChart } from "@/components/charts";
 import { api } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { formatCurrency } from "@/lib/format";
@@ -43,11 +35,6 @@ function FinancialStatementsView() {
   const companyFilter = selectedCompany || (activeCompanyId ? String(activeCompanyId) : "");
   const [statements, setStatements] = useState<FinanceStatements | null>(null);
   const [loading, setLoading] = useState(true);
-  const mounted = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  );
 
   const company = companies.find((c) => String(c.id) === companyFilter);
   const currency = company?.base_currency || "LKR";
@@ -93,16 +80,28 @@ function FinancialStatementsView() {
   const aging = statements?.aging_summary;
   const vat200 = statements?.sri_lanka_ird_vat_200_return;
 
-  const chartData = statements
-    ? [
-        { name: "Revenue", value: Number(pnl?.total_revenue || 0) },
-        { name: "Expenses", value: Number(pnl?.total_expenses || 0) },
-        { name: "Net Profit", value: Number(pnl?.net_profit_or_loss || 0) },
-        { name: "Assets", value: Number(bs?.total_assets || 0) },
-        { name: "Liabilities", value: Number(bs?.total_liabilities || 0) },
-        { name: "Equity", value: Number(bs?.total_equity_plus_current_profit || 0) },
-      ]
-    : [];
+  const chartData = useMemo(() => {
+    if (!statements) return [];
+    const net = Number(pnl?.net_profit_or_loss || 0);
+    return [
+      { label: "Revenue", value: Number(pnl?.total_revenue || 0), color: "#2563eb" },
+      { label: "Expenses", value: Number(pnl?.total_expenses || 0), color: "#d97706" },
+      { label: "Net Profit", value: net, color: net >= 0 ? "#059669" : "#dc1e28" },
+      { label: "Assets", value: Number(bs?.total_assets || 0), color: "#7c3aed" },
+      { label: "Liabilities", value: Number(bs?.total_liabilities || 0), color: "#dc1e28" },
+      { label: "Equity", value: Number(bs?.total_equity_plus_current_profit || 0), color: "#0891b2" },
+    ];
+  }, [bs?.total_assets, bs?.total_equity_plus_current_profit, bs?.total_liabilities, pnl?.net_profit_or_loss, pnl?.total_expenses, pnl?.total_revenue, statements]);
+
+  const trialDonutData = useMemo(() => {
+    if (!statements?.trial_balance?.length) return [];
+    const grouped = new Map<string, number>();
+    for (const acc of statements.trial_balance) {
+      const k = acc.account_type || "OTHER";
+      grouped.set(k, (grouped.get(k) || 0) + Math.abs(Number(acc.balance) || 0));
+    }
+    return Array.from(grouped.entries()).map(([label, value]) => ({ label, value }));
+  }, [statements]);
 
   return (
     <div className="space-y-5">
@@ -164,50 +163,53 @@ function FinancialStatementsView() {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card className="p-5">
-          <h3 className="mb-3 text-sm font-bold">Statement Visual Breakdown</h3>
-          <div className="h-64 w-full">
-            {mounted && chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#dc1e28" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center text-xs text-[var(--text-muted)]">
-                No financial statement figures yet.
-              </div>
-            )}
-          </div>
+          <h3 className="mb-3 text-sm font-bold">Statement Visual Breakdown (D3.js)</h3>
+          <D3BarChart
+            data={chartData}
+            height={256}
+            formatValue={(v) => formatCurrency(v, currency)}
+            title="Financial Statement Visual Breakdown"
+            emptyText="No financial statement figures yet."
+          />
         </Card>
 
         <Card className="p-5">
-          <h3 className="mb-3 text-sm font-bold">Sri Lanka IRD VAT 200 Return Summary</h3>
-          {vat200 ? (
-            <div className="divide-y divide-[var(--border-subtle)] text-xs">
-              {Object.entries(vat200).map(([k, v]) => (
-                <div key={k} className="flex items-center justify-between py-2.5">
-                  <span className="capitalize text-[var(--text-secondary)]">
-                    {k.replace(/_/g, " ")}
-                  </span>
-                  <span className="font-mono font-bold">
-                    {typeof v === "number" || /^\d+(\.\d+)?$/.test(String(v))
-                      ? String(v)
-                      : String(v)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="py-12 text-center text-xs text-[var(--text-muted)]">
-              VAT 200 return data will populate once invoices/bills are posted.
-            </p>
-          )}
+          <h3 className="mb-3 text-sm font-bold">Trial Balance Composition by Type</h3>
+          <D3DonutChart
+            data={trialDonutData}
+            size={195}
+            centerLabel="Accounts"
+            centerValue={String(statements?.trial_balance?.length || 0)}
+            formatValue={(v) => formatCurrency(v, currency)}
+            title="Trial Balance Composition"
+            emptyText="Post entries to populate Trial Balance chart."
+          />
         </Card>
       </div>
+
+      <Card className="p-5">
+        <h3 className="mb-3 text-sm font-bold">Sri Lanka IRD VAT 200 Return Summary</h3>
+        {vat200 ? (
+          <div className="divide-y divide-[var(--border-subtle)] text-xs">
+            {Object.entries(vat200).map(([k, v]) => (
+              <div key={k} className="flex items-center justify-between py-2.5">
+                <span className="capitalize text-[var(--text-secondary)]">
+                  {k.replace(/_/g, " ")}
+                </span>
+                <span className="font-mono font-bold">
+                  {typeof v === "number" || /^\d+(\.\d+)?$/.test(String(v))
+                    ? String(v)
+                    : String(v)}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="py-12 text-center text-xs text-[var(--text-muted)]">
+            VAT 200 return data will populate once invoices/bills are posted.
+          </p>
+        )}
+      </Card>
 
       {statements?.trial_balance && statements.trial_balance.length > 0 && (
         <Card className="overflow-hidden">

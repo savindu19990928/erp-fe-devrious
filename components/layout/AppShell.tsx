@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   AlertTriangle,
+  BarChart3,
   Bell,
   Building2,
   ChevronLeft,
@@ -43,6 +44,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Executive Overview", icon: LayoutDashboard, group: "Core", keywords: "dashboard kpi home" },
+  { href: "/reports", label: "Reports & Analytics", icon: BarChart3, group: "Core", keywords: "d3 charts visualizations pnl vat payroll inventory fleet sla" },
   { href: "/pos", label: "Point of Sale", icon: ShoppingCart, group: "Operations", keywords: "cashier register receipt shift" },
   { href: "/finance", label: "Finance & Accounting", icon: Landmark, group: "Operations", keywords: "vat svat ramis gl ledger invoice bill" },
   { href: "/hr", label: "HR & Payroll", icon: UserCheck, group: "Operations", keywords: "epf etf apit ird7 employees leave" },
@@ -55,7 +57,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/platform", label: "SaaS Billing & Tenants", icon: CreditCard, group: "Administration", keywords: "subscription overdue 2-month plans" },
   { href: "/organization", label: "Companies & Users", icon: Building2, group: "Administration", keywords: "branches roles rbac permissions" },
   { href: "/governance", label: "Workflows & Audit", icon: ShieldCheck, group: "Administration", keywords: "approvals notifications webhooks logs" },
-  { href: "/settings", label: "Settings & API", icon: Settings, group: "Administration", keywords: "profile theme server url" },
+  { href: "/settings", label: "Settings", icon: Settings, group: "Administration", keywords: "profile theme preferences" },
 ];
 
 const GROUPS = ["Core", "Operations", "Supply Chain", "Customer", "Administration"];
@@ -76,7 +78,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     markNotificationRead,
     theme,
     toggleTheme,
-    apiBaseUrl,
     logout,
   } = useAuth();
 
@@ -409,15 +410,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <Moon className="h-4 w-4" />
                 )}
               </button>
-
-              <Link
-                href="/settings"
-                className="hidden items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2.5 py-1.5 text-[11px] font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] sm:inline-flex"
-                title={`API Server: ${apiBaseUrl}`}
-              >
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                <span className="max-w-[110px] truncate">API Connected</span>
-              </Link>
             </div>
           </div>
 

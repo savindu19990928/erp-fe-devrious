@@ -1,31 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const DEFAULT_API_BASE =
+const UPSTREAM_API_BASE = (
   process.env.ERP_API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_BASE_URL ||
-  "https://erp.devrious.lk/api";
-
-function resolveUpstreamBase(req: NextRequest): string {
-  const override = req.headers.get("x-bizzrious-api-base")?.trim();
-  if (override) {
-    try {
-      const parsed = new URL(override);
-      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-        return override.replace(/\/+$/, "");
-      }
-    } catch {
-      // Ignore invalid override header and fall back to configured default
-    }
-  }
-  return DEFAULT_API_BASE.replace(/\/+$/, "");
-}
+  "https://erp.devrious.lk/api"
+).replace(/\/+$/, "");
 
 async function proxyRequest(
   req: NextRequest,
   context: { params: Promise<{ path: string[] }> }
 ): Promise<NextResponse> {
   const { path } = await context.params;
-  const upstreamBase = resolveUpstreamBase(req);
 
   const joined = (path || [])
     .map((segment) => encodeURIComponent(decodeURIComponent(segment)))
@@ -33,8 +18,8 @@ async function proxyRequest(
   const search = req.nextUrl.search || "";
   // Django REST Framework requires trailing slash before query parameters
   const targetUrl = joined
-    ? `${upstreamBase}/${joined}/${search}`
-    : `${upstreamBase}/${search}`;
+    ? `${UPSTREAM_API_BASE}/${joined}/${search}`
+    : `${UPSTREAM_API_BASE}/${search}`;
 
   const forwardHeaders = new Headers();
   const authHeader = req.headers.get("authorization");
@@ -93,13 +78,11 @@ async function proxyRequest(
     clearTimeout(timeout);
     const message =
       err instanceof Error && err.name === "AbortError"
-        ? `Request timed out while contacting Bizzrious ERP API at ${upstreamBase}.`
-        : `Unable to reach Bizzrious ERP API server at ${upstreamBase}. Check server availability or update API Server URL in Settings.`;
+        ? "Request timed out while contacting Bizzrious ERP API server."
+        : "Unable to reach Bizzrious ERP API server. Please verify server availability and try again.";
     return NextResponse.json(
       {
         detail: message,
-        upstream: upstreamBase,
-        target: targetUrl,
       },
       { status: 502 }
     );
@@ -153,7 +136,7 @@ export async function OPTIONS() {
     status: 204,
     headers: {
       "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS",
-      "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Bizzrious-Api-Base",
+      "Access-Control-Allow-Headers": "Authorization, Content-Type",
     },
   });
 }

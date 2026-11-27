@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
   ArrowUpRight,
+  BarChart3,
   Calculator,
   CheckCircle2,
-  CreditCard,
   Headphones,
   Landmark,
   Package,
@@ -17,15 +17,7 @@ import {
   Truck,
   XCircle,
 } from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { D3BarChart, D3DonutChart } from "@/components/charts";
 import { api, extractList } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
@@ -37,11 +29,6 @@ export default function ExecutiveDashboardPage() {
   const { user, activeCompanyId, companies, isAuditor } = useAuth();
   const toast = useToast();
 
-  const mounted = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  );
   const [loading, setLoading] = useState(true);
   const [statements, setStatements] = useState<FinanceStatements | null>(null);
   const [invAnalytics, setInvAnalytics] = useState<Record<string, unknown> | null>(null);
@@ -117,15 +104,27 @@ export default function ExecutiveDashboardPage() {
   const bs = statements?.balance_sheet;
   const aging = statements?.aging_summary;
 
-  const financeChartData = statements
-    ? [
-        { name: "Revenue", amount: Number(pnl?.total_revenue || 0) },
-        { name: "Expenses", amount: Number(pnl?.total_expenses || 0) },
-        { name: "Net Profit", amount: Number(pnl?.net_profit_or_loss || 0) },
-        { name: "Total Assets", amount: Number(bs?.total_assets || 0) },
-        { name: "Liabilities", amount: Number(bs?.total_liabilities || 0) },
-      ]
-    : [];
+  const financeChartData = useMemo(() => {
+    if (!statements) return [];
+    const netProfit = Number(pnl?.net_profit_or_loss || 0);
+    return [
+      { label: "Revenue", value: Number(pnl?.total_revenue || 0), color: "#2563eb" },
+      { label: "Expenses", value: Number(pnl?.total_expenses || 0), color: "#d97706" },
+      { label: "Net Profit", value: netProfit, color: netProfit >= 0 ? "#059669" : "#dc1e28" },
+      { label: "Assets", value: Number(bs?.total_assets || 0), color: "#7c3aed" },
+      { label: "Liabilities", value: Number(bs?.total_liabilities || 0), color: "#dc1e28" },
+    ];
+  }, [bs?.total_assets, bs?.total_liabilities, pnl?.net_profit_or_loss, pnl?.total_expenses, pnl?.total_revenue, statements]);
+
+  const trialBalanceDonut = useMemo(() => {
+    if (!statements?.trial_balance?.length) return [];
+    const totals = new Map<string, number>();
+    for (const acc of statements.trial_balance) {
+      const k = acc.account_type || "OTHER";
+      totals.set(k, (totals.get(k) || 0) + Math.abs(Number(acc.balance) || 0));
+    }
+    return Array.from(totals.entries()).map(([label, value]) => ({ label, value }));
+  }, [statements]);
 
   const invVal =
     invAnalytics?.total_stock_valuation ??
@@ -144,10 +143,18 @@ export default function ExecutiveDashboardPage() {
             summary{activeCompany ? ` for ${activeCompany.name}` : ""}.
           </p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => void loadDashboard()}>
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh KPIs
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/reports">
+            <Button size="sm" variant="primary">
+              <BarChart3 className="h-4 w-4" />
+              Reports &amp; Visualizations
+            </Button>
+          </Link>
+          <Button size="sm" variant="outline" onClick={() => void loadDashboard()}>
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh KPIs
+          </Button>
+        </div>
       </div>
 
       {/* Primary KPI Strip */}
@@ -209,12 +216,12 @@ export default function ExecutiveDashboardPage() {
         </h2>
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
           {[
+            { href: "/reports", label: "Reports & D3 Charts", icon: BarChart3 },
             { href: "/pos", label: "POS Terminal", icon: ShoppingCart },
             { href: "/finance?tab=customer-invoices", label: "Tax Invoice & RAMIS", icon: Landmark },
             { href: "/hr", label: "EPF/ETF/APIT Calc", icon: Calculator },
             { href: "/inventory", label: "Barcode Scanner", icon: QrCode },
             { href: "/fleet", label: "Route Optimizer", icon: Truck },
-            { href: "/platform", label: "SaaS Billing", icon: CreditCard },
           ].map((item) => {
             const Icon = item.icon;
             return (
@@ -253,25 +260,32 @@ export default function ExecutiveDashboardPage() {
               Open Statements →
             </Link>
           </div>
-          <div className="h-64 w-full">
-            {mounted && financeChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={financeChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)" />
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Bar dataKey="amount" fill="#dc1e28" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-[var(--border-subtle)] text-xs text-[var(--text-muted)]">
-                {loading
-                  ? "Loading live financial statements..."
-                  : "Post journals or issue invoices in Finance to populate statement charts."}
-              </div>
-            )}
-          </div>
+          <D3BarChart
+            data={financeChartData}
+            height={255}
+            formatValue={(v) => formatCurrency(v, currency)}
+            title="Financial Position Overview"
+            emptyText={
+              loading
+                ? "Loading live financial statements..."
+                : "Post journals or issue invoices in Finance to populate statement charts."
+            }
+          />
+          {trialBalanceDonut.length > 0 && (
+            <div className="mt-5 border-t border-[var(--border-subtle)] pt-4">
+              <p className="mb-3 text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                Trial Balance Composition
+              </p>
+              <D3DonutChart
+                data={trialBalanceDonut}
+                size={165}
+                centerLabel="Ledger"
+                centerValue={currency}
+                formatValue={(v) => formatCurrency(v, currency)}
+                title="Trial Balance Composition"
+              />
+            </div>
+          )}
         </Card>
 
         {/* Pending Approvals Queue */}
